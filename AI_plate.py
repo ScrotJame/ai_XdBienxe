@@ -17,7 +17,7 @@ fontpath = "./arial.ttf"
 font = ImageFont.truetype(fontpath, 32)
 b, g, r, a = 0, 255, 0, 0
 
-# making the image grayscale
+# bien anh thanh mau xam
 grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(grayscale, (5, 5), 0)
 edged = cv2.Canny(blurred, 10, 200)

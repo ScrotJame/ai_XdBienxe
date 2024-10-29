@@ -5,34 +5,41 @@ import pytesseract
 from PIL import Image
 plt.style.use('dark_background')
 
-rasm = cv2.imread('bienso/image5.jpg')
+rasm = cv2.imread('bienso/image8.jpg')
 
 height, width, channel = rasm.shape
 #xac dinh anh
 plt.figure(figsize=(12, 10))
 plt.imshow(rasm, cmap='gray')
 plt.axis('on')
-plt.savefig('Car.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car.png',bbox_inches = 'tight')
 plt.show()
 print(height)
 print(width)
 print(channel)
-# bien anh thanh den trang
+# bien anh thanh den tranggray = cv2.cvtColor(rasm, cv2.COLOR_BGR2GRAY)
 gray = cv2.cvtColor(rasm, cv2.COLOR_BGR2GRAY)
 
-
+# Định nghĩa phần tử cấu trúc
 structuringElement = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
 
-imgTopHat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, structuringElement)     
-imgBlackHat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, structuringElement)   
+# Áp dụng phép toán hình thái top-hat và black-hat
+imgTopHat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, structuringElement)
+imgBlackHat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, structuringElement)
 
-imgGrayscalePlusTopHat = cv2.add(gray, imgTopHat) 
-gray = cv2.subtract(imgGrayscalePlusTopHat, imgBlackHat) 
+# Kết hợp với ảnh xám ban đầu
+imgGrayscalePlusTopHat = cv2.add(gray, imgTopHat)
+gray = cv2.subtract(imgGrayscalePlusTopHat, imgBlackHat)
 
+# Áp dụng cân bằng histogram để tăng độ tương phản
+clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+gray_clahe = clahe.apply(gray)
+
+# Hiển thị và lưu kết quả
 plt.figure(figsize=(12, 10))
 plt.imshow(gray, cmap='gray')
 plt.axis('off')
-plt.savefig('Car-Contrast.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Xam.png', bbox_inches='tight')
 plt.show()
 #anh den trang de nhan biet bien va xe 
 img_blurred = cv2.GaussianBlur(gray, ksize=(5, 5), sigmaX=0)  #loc Gauss
@@ -45,11 +52,11 @@ img_thresh = cv2.adaptiveThreshold(
     blockSize=19, 
     C=9
 )
-
+img_thresh=cv2.equalizeHist(img_thresh)
 plt.figure(figsize=(12, 10))
 plt.imshow(img_thresh, cmap='gray')
 plt.axis('off')
-plt.savefig('biensotrain/Car-Adaptive-Thresholding.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Locvien.png',bbox_inches = 'tight')
 plt.show()
 #doi sang dang duong vien 
 contours, _= cv2.findContours(
@@ -61,11 +68,10 @@ contours, _= cv2.findContours(
 temp_result = np.zeros((height, width, channel), dtype=np.uint8)
 
 cv2.drawContours(temp_result, contours=contours, contourIdx=-1, color=(255, 255, 255))
-
 plt.figure(figsize=(12, 10))
 plt.imshow(temp_result)
 plt.axis('off')
-plt.savefig('biensotrain/Car-Contours.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Vientrang.png',bbox_inches = 'tight')
 plt.show()
 
 temp_result = np.zeros((height, width, channel), dtype=np.uint8)
@@ -90,7 +96,7 @@ for contour in contours:
 plt.figure(figsize=(12, 10))
 plt.imshow(temp_result, cmap='gray')
 plt.axis('off')
-plt.savefig('biensotrain/Car-Boxes.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Lochop.png',bbox_inches = 'tight')
 plt.show()
 
 #tach lay cac o nho hon 
@@ -121,7 +127,7 @@ for d in possible_contours:
 plt.figure(figsize=(12, 10))
 plt.imshow(temp_result, cmap='gray')
 plt.axis('off')
-plt.savefig('bienso/Car-Boxes-byCharSize.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Lochop2.png',bbox_inches = 'tight')
 plt.show()
 
 #lay o bien so xe
@@ -202,7 +208,7 @@ for r in matched_result:
 plt.figure(figsize=(12, 10))
 plt.imshow(temp_result, cmap='gray')
 plt.axis('off')
-plt.savefig('biensotrain/Car-Boxes-byContourArrangement.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Locvungbien.png',bbox_inches = 'tight')
 plt.show()
 
 #ap dung duogn vien cho anh goc 
@@ -221,12 +227,12 @@ for r in matched_result:
 plt.figure(figsize=(12, 10))
 plt.imshow(rasm, cmap='gray')
 plt.axis('off')
-plt.savefig('biensotrain/Car-OverlappingBoxes.png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_Locgoc.png',bbox_inches = 'tight')
 plt.show()
 
 #cat so ra khoi hinh
-PLATE_WIDTH_PADDING = 1.3 # 1.3
-PLATE_HEIGHT_PADDING = 1.5 # 1.5
+PLATE_WIDTH_PADDING = 1.3  # 1.3
+PLATE_HEIGHT_PADDING = 1.5  # 1.5
 MIN_PLATE_RATIO = 3
 MAX_PLATE_RATIO = 10
 
@@ -265,7 +271,7 @@ for i, matched_chars in enumerate(matched_result):
         center=(int(plate_cx), int(plate_cy))
     )
     
-    if img_cropped.shape[1] / img_cropped.shape[0] < MIN_PLATE_RATIO or img_cropped.shape[1] / img_cropped.shape[0] < MIN_PLATE_RATIO > MAX_PLATE_RATIO:
+    if img_cropped.shape[1] / img_cropped.shape[0] < MIN_PLATE_RATIO or img_cropped.shape[1] / img_cropped.shape[0] > MAX_PLATE_RATIO:
         continue
     
     plate_imgs.append(img_cropped)
@@ -279,7 +285,7 @@ for i, matched_chars in enumerate(matched_result):
     plt.subplot(len(matched_result), 1, i+1)
     plt.imshow(img_cropped, cmap='gray')
     plt.axis('off')
-    plt.savefig('biensotrain/Car-Plates(Rotated).png',bbox_inches = 'tight')
+    plt.savefig('biensotrain/Car_daonguocbien.png', bbox_inches='tight')
     plt.show()
 
     longest_idx, longest_text = -1, 0
@@ -287,9 +293,13 @@ plate_chars = []
 
 for i, plate_img in enumerate(plate_imgs):
     plate_img = cv2.resize(plate_img, dsize=(0, 0), fx=1.6, fy=1.6)
+
+    # Tăng độ tương phản bằng histogram
+    plate_img = cv2.equalizeHist(plate_img)
+
     _, plate_img = cv2.threshold(plate_img, thresh=0.0, maxval=255.0, type=cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     
-    # tim duogn vien lai lan nua 
+    # Tìm đường viền lại lần nữa 
     contours, _ = cv2.findContours(plate_img, mode=cv2.RETR_LIST, method=cv2.CHAIN_APPROX_SIMPLE)
     
     plate_min_x, plate_min_y = plate_img.shape[1], plate_img.shape[0]
@@ -301,9 +311,7 @@ for i, plate_img in enumerate(plate_imgs):
         area = w * h
         ratio = w / h
 
-        if area > MIN_AREA \
-        and w > MIN_WIDTH and h > MIN_HEIGHT \
-        and MIN_RATIO < ratio < MAX_RATIO:
+        if area > MIN_AREA and w > MIN_WIDTH and h > MIN_HEIGHT and MIN_RATIO < ratio < MAX_RATIO:
             if x < plate_min_x:
                 plate_min_x = x
             if y < plate_min_y:
@@ -317,17 +325,19 @@ for i, plate_img in enumerate(plate_imgs):
     
     img_result = cv2.GaussianBlur(img_result, ksize=(3, 3), sigmaX=0)
     _, img_result = cv2.threshold(img_result, thresh=0.0, maxval=255.0, type=cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    img_result = cv2.copyMakeBorder(img_result, top=10, bottom=10, left=10, right=10, borderType=cv2.BORDER_CONSTANT, value=(0,0,0))
+    img_result = cv2.copyMakeBorder(img_result, top=10, bottom=10, left=10, right=10, borderType=cv2.BORDER_CONSTANT, value=(0, 0, 0))
+    
     plt.subplot(len(plate_imgs), 1, i+1)
     plt.imshow(img_result, cmap='gray')
     plt.axis('off')
-    plt.savefig('biensotrain/Car-Plates(Thresholding).png',bbox_inches = 'tight')
+    plt.savefig('biensotrain/Car_Sotrang.png', bbox_inches='tight')
     plt.show()
     break
-img = 255-img_result
+
+img = 255 - img_result
 plt.imshow(img, 'gray')
 plt.axis('off')
-plt.savefig('biensotrain/Car-Plates(Negative).png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car-Soden.png', bbox_inches='tight')
 plt.show()
 def find_contours(dimensions, img) :
 
@@ -343,7 +353,7 @@ def find_contours(dimensions, img) :
     # kiem tra lan luot 5-15 duong vien lon nhat cho bien hoac so xe
     cntrs = sorted(cntrs, key=cv2.contourArea, reverse=True)[:15]
     
-    ii = cv2.imread('contour.jpg')
+    ii = cv2.imread('biensotrain/sobien.jpg')
     
     x_cntr_list = []
     target_contours = []
@@ -412,7 +422,7 @@ def segment_characters(image) :
     plt.imshow(img_lp, cmap='gray')
     plt.axis('off')
     plt.show()
-    cv2.imwrite('contour.jpg', img_lp)
+    cv2.imwrite('biensotrain/sobien.jpg', img_lp)
     
 
     # nhan duong vien trong bien so xe da cat
@@ -426,6 +436,6 @@ for i in range(len(char)):
     plt.imshow(char[i], cmap='gray')
     plt.axis('off')
 #tach cac so 
-plt.savefig('biensotrain/Car-Plates-Char(Seperated).png',bbox_inches = 'tight')
+plt.savefig('biensotrain/Car_biencuoi.png',bbox_inches = 'tight')
 
 
