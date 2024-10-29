@@ -10,7 +10,7 @@ with open('mabiencactinh.json', 'r', encoding='utf-8') as f:
     provinces = json.load(f)
 
 # loading images and resizing
-img = cv2.imread('./image8.jpg')
+img = cv2.imread('bienso/image6.jpg')
 img = cv2.resize(img, (800, 600))
 # load font
 fontpath = "./arial.ttf"
