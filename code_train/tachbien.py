@@ -1,9 +1,16 @@
 import cv2
+import json
 import numpy as np
 import matplotlib.pyplot as plt
-import pytesseract               
+import pytesseract   
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"           
 from PIL import Image
 plt.style.use('dark_background')
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+with open('mabiencactinh.json', 'r', encoding='utf-8') as f:
+    provinces = json.load(f)
 
 rasm = cv2.imread('bienso/image8.jpg')
 
@@ -13,7 +20,7 @@ plt.figure(figsize=(12, 10))
 plt.imshow(rasm, cmap='gray')
 plt.axis('on')
 plt.savefig('biensotrain/Car.png',bbox_inches = 'tight')
-plt.show()
+#plt.show()
 print(height)
 print(width)
 print(channel)
@@ -40,7 +47,7 @@ plt.figure(figsize=(12, 10))
 plt.imshow(gray, cmap='gray')
 plt.axis('off')
 plt.savefig('biensotrain/Car_Xam.png', bbox_inches='tight')
-plt.show()
+#plt.show()
 #anh den trang de nhan biet bien va xe 
 img_blurred = cv2.GaussianBlur(gray, ksize=(5, 5), sigmaX=0)  #loc Gauss
 
@@ -57,7 +64,7 @@ plt.figure(figsize=(12, 10))
 plt.imshow(img_thresh, cmap='gray')
 plt.axis('off')
 plt.savefig('biensotrain/Car_Locvien.png',bbox_inches = 'tight')
-plt.show()
+#plt.show()
 #doi sang dang duong vien 
 contours, _= cv2.findContours(
     img_thresh, 
@@ -72,7 +79,7 @@ plt.figure(figsize=(12, 10))
 plt.imshow(temp_result)
 plt.axis('off')
 plt.savefig('biensotrain/Car_Vientrang.png',bbox_inches = 'tight')
-plt.show()
+#plt.show()
 
 temp_result = np.zeros((height, width, channel), dtype=np.uint8)
 
@@ -97,10 +104,10 @@ plt.figure(figsize=(12, 10))
 plt.imshow(temp_result, cmap='gray')
 plt.axis('off')
 plt.savefig('biensotrain/Car_Lochop.png',bbox_inches = 'tight')
-plt.show()
+#plt.show()
 
 #tach lay cac o nho hon 
-MIN_AREA = 80
+MIN_AREA = 50
 MIN_WIDTH, MIN_HEIGHT = 2, 8
 MIN_RATIO, MAX_RATIO = 0.25, 1.0
 
@@ -128,14 +135,14 @@ plt.figure(figsize=(12, 10))
 plt.imshow(temp_result, cmap='gray')
 plt.axis('off')
 plt.savefig('biensotrain/Car_Lochop2.png',bbox_inches = 'tight')
-plt.show()
+#plt.show()
 
 #lay o bien so xe
 MAX_DIAG_MULTIPLYER = 5 # 5
-MAX_ANGLE_DIFF = 12.0 # 12.0
-MAX_AREA_DIFF = 0.5 # 0.5
-MAX_WIDTH_DIFF = 0.8
-MAX_HEIGHT_DIFF = 0.2
+MAX_ANGLE_DIFF = 11.0 # 12.0
+MAX_AREA_DIFF = 0.2 # 0.5
+MAX_WIDTH_DIFF = 0.8 #0.8
+MAX_HEIGHT_DIFF = 0.2 #0.2
 MIN_N_MATCHED = 3 # 3
 
 def find_chars(contour_list):
@@ -274,7 +281,16 @@ for i, matched_chars in enumerate(matched_result):
     if img_cropped.shape[1] / img_cropped.shape[0] < MIN_PLATE_RATIO or img_cropped.shape[1] / img_cropped.shape[0] > MAX_PLATE_RATIO:
         continue
     
-    plate_imgs.append(img_cropped)
+    # Convert to grayscale (if not already) and apply histogram equalization
+    if len(img_cropped.shape) == 3:  # Check if the image is colored
+        img_cropped_gray = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
+    else:
+        img_cropped_gray = img_cropped
+
+    # Apply histogram equalization
+    img_cropped_eq = cv2.equalizeHist(img_cropped_gray)
+    #img_cropped_eq = cv2.calcHist(img_cropped_gray)
+    plate_imgs.append(img_cropped_eq)
     plate_infos.append({
         'x': int(plate_cx - plate_width / 2),
         'y': int(plate_cy - plate_height / 2),
@@ -283,13 +299,13 @@ for i, matched_chars in enumerate(matched_result):
     })
     
     plt.subplot(len(matched_result), 1, i+1)
-    plt.imshow(img_cropped, cmap='gray')
+    plt.imshow(img_cropped_eq, cmap='gray')  # Use the equalized image for display
     plt.axis('off')
     plt.savefig('biensotrain/Car_daonguocbien.png', bbox_inches='tight')
     plt.show()
 
     longest_idx, longest_text = -1, 0
-plate_chars = []
+    plate_chars = []
 
 for i, plate_img in enumerate(plate_imgs):
     plate_img = cv2.resize(plate_img, dsize=(0, 0), fx=1.6, fy=1.6)
@@ -310,7 +326,7 @@ for i, plate_img in enumerate(plate_imgs):
         
         area = w * h
         ratio = w / h
-
+        # Lọc các đường viền dựa trên kích thước điển hình của số biển số xe
         if area > MIN_AREA and w > MIN_WIDTH and h > MIN_HEIGHT and MIN_RATIO < ratio < MAX_RATIO:
             if x < plate_min_x:
                 plate_min_x = x
@@ -319,7 +335,7 @@ for i, plate_img in enumerate(plate_imgs):
             if x + w > plate_max_x:
                 plate_max_x = x + w
             if y + h > plate_max_y:
-                plate_max_y = y + h
+                plate_max_y = y + h 
                 
     img_result = plate_img[plate_min_y:plate_max_y, plate_min_x:plate_max_x]
     
@@ -332,7 +348,6 @@ for i, plate_img in enumerate(plate_imgs):
     plt.axis('off')
     plt.savefig('biensotrain/Car_Sotrang.png', bbox_inches='tight')
     plt.show()
-    break
 
 img = 255 - img_result
 plt.imshow(img, 'gray')
@@ -404,6 +419,7 @@ def segment_characters(image) :
 
     # xu ly hinh anh da cat
     img_lp = cv2.resize(image, (333, 75))
+    img_lp = cv2.equalizeHist(img_lp)
 
     LP_WIDTH = img_lp.shape[0]
     LP_HEIGHT = img_lp.shape[1]
@@ -437,5 +453,214 @@ for i in range(len(char)):
     plt.axis('off')
 #tach cac so 
 plt.savefig('biensotrain/Car_biencuoi.png',bbox_inches = 'tight')
+
+import tensorflow as tf
+from sklearn.metrics import f1_score
+from tensorflow.keras import optimizers
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.layers import Dense, Flatten, MaxPooling2D, Dropout, Conv2D
+import tensorflow.keras.backend as K
+import matplotlib.pyplot as plt
+from tensorflow.keras.callbacks import Callback
+from keras.models import Sequential, model_from_json  # Thêm dòng này để import model_from_json
+import tensorflow as tf 
+
+"""
+def f1score(y, y_pred):
+    return f1_score(y, tf.math.argmax(y_pred, axis=1), average='micro') 
+
+def custom_f1score(y, y_pred):
+    return tf.py_function(f1score, (y, y_pred), tf.double)
+        """
+
+# Đào tạo và Xác thực Xử lý dữ liệu
+train_datagen = ImageDataGenerator(rescale=1./255, width_shift_range=0.1, height_shift_range=0.1)
+path = './biensotrain/data'
+train_generator = train_datagen.flow_from_directory(
+    path + '/train',  
+    target_size=(28, 28),
+    batch_size=1,
+    class_mode='sparse'
+)
+
+validation_generator = train_datagen.flow_from_directory(
+    path + '/val',  
+    target_size=(28, 28),
+    batch_size=1,
+    class_mode='sparse'
+)
+
+# Đăng ký lớp F1Score để lưu và tải
+@tf.keras.utils.register_keras_serializable()
+class F1Score(tf.keras.metrics.Metric):
+    def __init__(self, name='f1_score', dtype=tf.float32):
+        super(F1Score, self).__init__(name=name, dtype=dtype)
+        self.true_positives = self.add_weight(name='tp', initializer='zeros')
+        self.false_positives = self.add_weight(name='fp', initializer='zeros')
+        self.false_negatives = self.add_weight(name='fn', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true = tf.cast(y_true, tf.int32)  # Chuyển kiểu dữ liệu cho y_true
+        y_pred = tf.cast(y_pred, tf.int32)  # Chuyển kiểu dữ liệu cho y_pred
+
+        tp = tf.reduce_sum(tf.cast(tf.equal(y_true, y_pred) & tf.equal(y_true, 1), tf.float32))
+        fp = tf.reduce_sum(tf.cast(tf.equal(y_true, 0) & tf.equal(y_pred, 1), tf.float32))
+        fn = tf.reduce_sum(tf.cast(tf.equal(y_true, 1) & tf.equal(y_pred, 0), tf.float32))
+
+        self.true_positives.assign_add(tp)
+        self.false_positives.assign_add(fp)
+        self.false_negatives.assign_add(fn)
+
+    def result(self):
+        precision = self.true_positives / (self.true_positives + self.false_positives + 1e-7)
+        recall = self.true_positives / (self.true_positives + self.false_negatives + 1e-7)
+        return 2 * (precision * recall) / (precision + recall + 1e-7)
+
+    def reset_state(self):
+        self.true_positives.assign(0)
+        self.false_positives.assign(0)
+        self.false_negatives.assign(0)
+
+# Model lưu trữ
+def store_keras_model(model, model_name):
+    model_json = model.to_json()  # tuần tự hóa mô hình thành JSON
+    with open("./{}.json".format(model_name), "w") as json_file:
+        json_file.write(model_json)
+    model.save_weights("./{}.weights.h5".format(model_name))  # Lưu trọng số với tên đúng
+    print("Saved model to disk")
+
+def load_keras_model(model_name):
+    json_file = open('./{}.json'.format(model_name), 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+    model.load_weights("./{}.weights.h5".format(model_name))
+    return model
+
+# Mô hình đào tạo
+K.clear_session()
+model = Sequential()
+model.add(Conv2D(16, (22,22), input_shape=(28, 28, 3), activation='relu', padding='same'))
+model.add(Conv2D(32, (16,16), activation='relu', padding='same'))
+model.add(Conv2D(64, (8,8), activation='relu', padding='same'))
+model.add(Conv2D(128, (4,4), activation='relu', padding='same'))
+
+model.add(MaxPooling2D(pool_size=(4,4)))
+
+model.add(Flatten())
+model.add(Dense(512, activation='relu'))
+model.add(Dropout(0.4))
+model.add(Dense(128, activation='relu'))
+model.add(Dense(36, activation='softmax'))
+model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizers.Adam(learning_rate=0.0001), metrics=[F1Score()])
+
+model.summary()
+
+# Callback để dừng sớm
+class StopTrainingCallback(Callback):
+    def on_epoch_end(self, epoch, logs={}):
+        if logs.get('val_f1_score') and logs['val_f1_score'] > 0.99:
+            self.model.stop_training = True
+
+# Train
+batch_size = 1
+callbacks = [StopTrainingCallback()]
+model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // batch_size,
+    validation_data=validation_generator,
+    epochs=80,
+    verbose=1,
+    callbacks=callbacks
+)
+
+
+
+
+#Lưu mô hình
+store_keras_model(model, 'model_LicensePlate')
+
+#Tải mô hình được đào tạo trước
+pre_trained_model = load_keras_model('model_LicensePlate')
+model = pre_trained_model 
+
+#Kiểm tra xem mô hình
+print(pre_trained_model.summary())
+
+#Dự đoán đầu ra và trình bày kết quả
+def fix_dimension(img):
+    new_img = np.zeros((28,28,3))
+    for i in range(3):
+        new_img[:,:,i] = img 
+    return new_img
+
+def show_results(char):  # Thêm tham số char vào
+    dic = {}
+    characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    for i, c in enumerate(characters):
+        dic[i] = c
+
+    output = []
+    for i, ch in enumerate(char):  # Lặp lại các ký tự
+        img_ = cv2.resize(ch, (28, 28), interpolation=cv2.INTER_AREA)
+        img = fix_dimension(img_)
+        img = img.reshape(1, 28, 28, 3)  # Chuẩn bị hình ảnh cho mô hình
+        predict_x = model.predict(img)[0]
+        y_ = np.argmax(predict_x, axis=0)
+        character = dic[y_]
+        output.append(character)  # Lưu trữ kết quả trong một danh sách
+    
+    plate_number = ''.join(output)
+    return plate_number
+
+print(show_results(char))
+
+#Các ký tự phân đoạn và giá trị dự đoán của chúng
+plt.figure(figsize=(10,6))
+for i,ch in enumerate(char):
+    img = cv2.resize(ch, (28,28), interpolation=cv2.INTER_AREA)
+    plt.subplot(3,4,i+1)
+    plt.imshow(img,cmap='gray')
+    title_obj = plt.title(f'predicted: {show_results(char)[i]}')
+    plt.setp(title_obj, color='black')
+    plt.axis('off')
+plt.show()
+
+#Xem kết quả thông qua Pytesseract
+img_1 = Image.fromarray(img_result)
+txt = pytesseract.image_to_string(img_1)
+print("Biển xe : ", txt)
+
+province_code = txt[:2]
+
+# Kiểm tra và in ra tên tỉnh tương ứng
+
+if province_code in provinces:
+    print("Tỉnh: ", provinces[province_code])
+else:
+    print("Tỉnh không xác định")
+
+char = segment_characters(img_result)
+
+txt = ''
+for i in range(len(char)):
+    plt.subplot(1, len(char), i + 1)
+    plt.imshow(char[i], cmap='gray')
+    img_1 = Image.fromarray(char[i])
+    img_1 = img_1.convert("RGB")
+    
+    # Nhận diện ký tự từ Pytesseract
+    detected_char = pytesseract.image_to_string(img_1, lang='vie', config='--psm 6')
+    
+    # Kiểm tra nếu ký tự không rỗng trước khi thêm vào chuỗi txt
+    if detected_char:
+        txt += detected_char[0]  # Lấy ký tự đầu tiên nếu có
+    
+    plt.axis('off')
+
+print( txt)
+
+
 
 
