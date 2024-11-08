@@ -6,3 +6,6 @@ quy trình chính:
 -sử dụng CDF để ánh xạ các giá trị pixel cũ sang giá trị mới trải dều trong khoảng [0,255]
 
 GaussianBlur
+
+Cài tesseract để sử dụng 
+https://github.com/UB-Mannheim/tesseract/wiki
