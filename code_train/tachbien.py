@@ -12,7 +12,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 with open('mabiencactinh.json', 'r', encoding='utf-8') as f:
     provinces = json.load(f)
 
-rasm = cv2.imread('bienso/image8.jpg')
+rasm = cv2.imread('bienso/image6.jpg')
 
 height, width, channel = rasm.shape
 #xac dinh anh
@@ -108,8 +108,8 @@ plt.savefig('biensotrain/Car_Lochop.png',bbox_inches = 'tight')
 
 #tach lay cac o nho hon 
 MIN_AREA = 50
-MIN_WIDTH, MIN_HEIGHT = 2, 8
-MIN_RATIO, MAX_RATIO = 0.25, 1.0
+MIN_WIDTH, MIN_HEIGHT = 0.25, 5    #2, 8
+MIN_RATIO, MAX_RATIO = 0.2, 2.5 #0.25, 1.0
 
 possible_contours = []
 
@@ -595,11 +595,14 @@ def fix_dimension(img):
         new_img[:,:,i] = img 
     return new_img
 
+output_folder = './datamayhoc'
+
 def show_results(char):  # Thêm tham số char vào
     dic = {}
     characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     for i, c in enumerate(characters):
         dic[i] = c
+    digit_count = 0
 
     output = []
     for i, ch in enumerate(char):  # Lặp lại các ký tự
@@ -610,15 +613,24 @@ def show_results(char):  # Thêm tham số char vào
         y_ = np.argmax(predict_x, axis=0)
         character = dic[y_]
         output.append(character)  # Lưu trữ kết quả trong một danh sách
-    
+        # Lưu ký tự thành tệp ảnh
+
+        file_name = f"{output_folder}/{character}_{i}.png"
+        cv2.imwrite(file_name, img_)  # Lưu ảnh của từng ký tự
+        print(f"Đã lưu ký tự '{character}' thành tệp: {file_name}")
     plate_number = ''.join(output)
     return plate_number
 
+    
+    
+show_results(char)
 print(show_results(char))
 
 #Các ký tự phân đoạn và giá trị dự đoán của chúng
 plt.figure(figsize=(10,6))
 for i,ch in enumerate(char):
+    
+    
     img = cv2.resize(ch, (28,28), interpolation=cv2.INTER_AREA)
     plt.subplot(3,4,i+1)
     plt.imshow(img,cmap='gray')
@@ -628,14 +640,15 @@ for i,ch in enumerate(char):
 plt.show()
 
 #Xem kết quả thông qua Pytesseract
+#img_result = cv2.threshold(img_result, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 img_1 = Image.fromarray(img_result)
 txt = pytesseract.image_to_string(img_1)
 print("Biển xe : ", txt)
 
-province_code = txt[:2]
+
 
 # Kiểm tra và in ra tên tỉnh tương ứng
-
+province_code = txt[:2]
 if province_code in provinces:
     print("Tỉnh: ", provinces[province_code])
 else:
@@ -645,13 +658,15 @@ char = segment_characters(img_result)
 
 txt = ''
 for i in range(len(char)):
+    #char[i] = cv2.threshold(char[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
     plt.subplot(1, len(char), i + 1)
     plt.imshow(char[i], cmap='gray')
     img_1 = Image.fromarray(char[i])
     img_1 = img_1.convert("RGB")
     
+    
     # Nhận diện ký tự từ Pytesseract
-    detected_char = pytesseract.image_to_string(img_1, lang='vie', config='--psm 6')
+    detected_char = pytesseract.image_to_string(img_1, lang='eng', config='--psm 8 --oem 3') #psm6
     
     # Kiểm tra nếu ký tự không rỗng trước khi thêm vào chuỗi txt
     if detected_char:
