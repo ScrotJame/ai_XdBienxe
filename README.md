@@ -9,3 +9,8 @@ GaussianBlur
 
 Cài tesseract để sử dụng 
 https://github.com/UB-Mannheim/tesseract/wiki
+
+thư viện
+pip install tensorflow
+pip install scikit-learn
+pip install keras
